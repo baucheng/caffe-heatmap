@@ -61,6 +61,15 @@ protected:
 
   Blob<Dtype> diff_;
 
+  Blob<Dtype> p_div_;
+  Blob<Dtype> ones_;
+  Blob<Dtype> oneSubp_gt_;
+  Blob<Dtype> oneSubp_pred_;
+  Blob<Dtype> oneSubp_div_;
+
+  Blob<Dtype> logp_pred;
+  Blob<Dtype> logoneSubp_pred;
+
   Blob<Dtype> img_pred_;
 
   // validation mode flag

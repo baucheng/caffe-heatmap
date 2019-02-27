@@ -1,10 +1,7 @@
-#include <algorithm>
-#include <cfloat>
 #include <vector>
 
-#include "caffe/layer.hpp"
+#include "caffe/layers/sigmoid_cross_entropy_loss_layer.hpp"
 #include "caffe/util/math_functions.hpp"
-#include "caffe/vision_layers.hpp"
 
 namespace caffe {
 
@@ -45,7 +42,8 @@ void SigmoidCrossEntropyLossLayer<Dtype>::Forward_cpu(
     loss -= input_data[i] * (target[i] - (input_data[i] >= 0)) -
         log(1 + exp(input_data[i] - 2 * input_data[i] * (input_data[i] >= 0)));
   }
-  top[0]->mutable_cpu_data()[0] = loss / num;
+  const int channels = bottom[0]->channels();  //zhw
+  top[0]->mutable_cpu_data()[0] = loss / (num + channels);  //zhw
 }
 
 template <typename Dtype>
@@ -66,7 +64,8 @@ void SigmoidCrossEntropyLossLayer<Dtype>::Backward_cpu(
     caffe_sub(count, sigmoid_output_data, target, bottom_diff);
     // Scale down gradient
     const Dtype loss_weight = top[0]->cpu_diff()[0];
-    caffe_scal(count, loss_weight / num, bottom_diff);
+	const int channels = bottom[0]->channels();  //zhw
+    caffe_scal(count, loss_weight / (num + channels), bottom_diff);  //zhw
   }
 }
 

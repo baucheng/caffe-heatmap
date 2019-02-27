@@ -253,7 +253,7 @@ void EuclideanLossHeatmapLayer<Dtype>::Backward_cpu(const vector<Blob<Dtype>*>& 
 
 }
 
-
+#ifndef CPU_ONLY
 template <typename Dtype>
 void EuclideanLossHeatmapLayer<Dtype>::Forward_gpu(const vector<Blob<Dtype>*>& bottom,
         const vector<Blob<Dtype>*>& top)
@@ -267,7 +267,7 @@ void EuclideanLossHeatmapLayer<Dtype>::Backward_gpu(const vector<Blob<Dtype>*>& 
 {
     Backward_cpu(top, propagate_down, bottom);
 }
-
+#endif
 
 
 #ifdef CPU_ONLY

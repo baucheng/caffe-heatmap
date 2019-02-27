@@ -92,6 +92,7 @@ void DataHeatmapLayer<Dtype>::DataLayerSetUp(const vector<Blob<Dtype>*>& bottom,
                 }
                 labelCounter++;
             }
+            //LOG(INFO) << "labelCounter: " << labelCounter;
 
             // read cropping info
             std::vector <float> cropInfo;
@@ -102,6 +103,7 @@ void DataHeatmapLayer<Dtype>::DataLayerSetUp(const vector<Blob<Dtype>*>& bottom,
                 if (!std::getline(ss2, s, ',')) break;
                 cropInfo.push_back(atof(s.c_str()));
             }
+            //LOG(INFO) << "cropInfoSize: " << cropInfo.size();
 
             int clusterClass = atoi(clusterClassStr.c_str());
             img_label_list_.push_back(std::make_pair(img_name, std::make_pair(label, std::make_pair(cropInfo, clusterClass))));
@@ -137,6 +139,7 @@ void DataHeatmapLayer<Dtype>::DataLayerSetUp(const vector<Blob<Dtype>*>& bottom,
                 }
                 labelCounter++;
             }
+            
 
             // read cropping info
             std::vector <float> cropInfo;
@@ -147,6 +150,7 @@ void DataHeatmapLayer<Dtype>::DataLayerSetUp(const vector<Blob<Dtype>*>& bottom,
                 if (!std::getline(ss2, s, ',')) break;
                 cropInfo.push_back(atof(s.c_str()));
             }
+            
 
             img_list_[clusterClass].push_back(std::make_pair(img_name, std::make_pair(label, std::make_pair(cropInfo, clusterClass))));
         }
@@ -313,7 +317,10 @@ void DataHeatmapLayer<Dtype>::load_batch(Batch<Dtype>* batch) {
     // For pose estimation with joints assumes i=0,1 are for head, and i=2,3 left wrist, i=4,5 right wrist etc
     //     in which case dont_flip_first should be set to true.
     int flip_start_ind;
-    if (dont_flip_first) flip_start_ind = 2;
+    if (dont_flip_first) {
+		LOG(INFO) << "DO NOT flip first !" ;
+		flip_start_ind = 2;
+	}
     else flip_start_ind = 0;
 
     if (visualise)
@@ -458,32 +465,40 @@ void DataHeatmapLayer<Dtype>::load_batch(Batch<Dtype>* batch) {
             const int idx_img_aug = idx_img * num_aug + idx_aug;
             std::vector<float> cur_label_aug = cur_label;
 
+			//cv::Mat img_copy = img.clone();
+			
             if (random_crop)
             {
                 // random sampling
                 DLOG(INFO) << "random crop sampling";
 
-                // horizontal flip
+                // horizontal flip   flip for 68points  debuging...   zhw  161024
                 if (rand() % 2)
                 {
-                    // flip
-                    cv::flip(img, img, 1);
-
-                    if (visualise)
-                        cv::flip(img_vis, img_vis, 1);
 
                     // "flip" annotation coordinates
-                    for (int i = 0; i < label_num_channels; i += 2)
-                        cur_label_aug[i] = (float)width / (float)multfact - cur_label_aug[i];
+                    //for (int i = 0; i < label_num_channels; i += 2)
+                    //    cur_label_aug[i] = (float)width / (float)multfact - cur_label_aug[i];
 
                     // "flip" annotation joint numbers
                     // assumes i=0,1 are for head, and i=2,3 left wrist, i=4,5 right wrist etc
                     // where coordinates are (x,y)
                     if (flip_joint_labels)
                     {
-                        float tmp_x, tmp_y;
+						// flip
+						cv::flip(img, img, 1);
+						
+						//full copy 
+						//cv::flip(img_copy, img_copy, 1);
+
+						if (visualise)
+							cv::flip(img_vis, img_vis, 1);
+						
+						
+                        /*float tmp_x, tmp_y;
                         for (int i = flip_start_ind; i < label_num_channels; i += 4)
                         {
+                            LOG(INFO) << "flip_start_ind: " << flip_start_ind << " i: " << i;
                             CHECK_LT(i + 3, label_num_channels);
                             tmp_x = cur_label_aug[i];
                             tmp_y = cur_label_aug[i + 1];
@@ -491,8 +506,86 @@ void DataHeatmapLayer<Dtype>::load_batch(Batch<Dtype>* batch) {
                             cur_label_aug[i + 1] = cur_label_aug[i + 3];
                             cur_label_aug[i + 2] = tmp_x;
                             cur_label_aug[i + 3] = tmp_y;
+                        }*/
+						
+						// "flip" annotation coordinates
+						for (int i = 0; i < label_num_channels; i += 2)
+							cur_label_aug[i] = (float)width / (float)multfact - cur_label_aug[i];
+						
+						std::vector<float> cur_label_copy = cur_label_aug;
+						//flip check
+						for (int i = 0; i < 17; i ++)
+                        {
+							int numStart = 16;
+                            cur_label_aug[2*i] = cur_label_copy[2*numStart-2*i];
+							cur_label_aug[2*i+1] = cur_label_copy[2*numStart-2*i+1];
                         }
-                    }
+						//flip eyebows
+						for (int i = 17,j = 0; i < 27; i ++,j++)
+                        {
+							int numStart = 26;
+                            cur_label_aug[2*i] = cur_label_copy[2*numStart-2*j];
+							cur_label_aug[2*i+1] = cur_label_copy[2*numStart-2*j+1];
+                        }
+						//flip nose
+						for (int i = 31,j = 0; i < 36; i ++,j++)
+                        {
+							int numStart = 35;
+                            cur_label_aug[2*i] = cur_label_copy[2*numStart-2*j];
+							cur_label_aug[2*i+1] = cur_label_copy[2*numStart-2*j+1];
+                        }
+						//flip eyes
+						for (int i = 36,j = 0; i < 40; i ++,j++)
+                        {
+							int numStart = 45;
+                            cur_label_aug[2*i] = cur_label_copy[2*numStart-2*j];
+							cur_label_aug[2*i+1] = cur_label_copy[2*numStart-2*j+1];
+                        }
+						for (int i = 40,j = 0; i < 42; i ++,j++)
+                        {
+							int numStart = 47;
+                            cur_label_aug[2*i] = cur_label_copy[2*numStart-2*j];
+							cur_label_aug[2*i+1] = cur_label_copy[2*numStart-2*j+1];
+                        }
+						for (int i = 42,j = 0; i < 46; i ++,j++)
+                        {
+							int numStart = 39;
+                            cur_label_aug[2*i] = cur_label_copy[2*numStart-2*j];
+							cur_label_aug[2*i+1] = cur_label_copy[2*numStart-2*j+1];
+                        }						
+						for (int i = 46,j = 0; i < 48; i ++,j++)
+                        {
+							int numStart = 41;
+                            cur_label_aug[2*i] = cur_label_copy[2*numStart-2*j];
+							cur_label_aug[2*i+1] = cur_label_copy[2*numStart-2*j+1];
+                        }
+						//flip mouth
+						for (int i = 48,j = 0; i < 55; i ++,j++)
+                        {
+							int numStart = 54;
+                            cur_label_aug[2*i] = cur_label_copy[2*numStart-2*j];
+							cur_label_aug[2*i+1] = cur_label_copy[2*numStart-2*j+1];
+                        }
+						for (int i = 55,j = 0; i < 60; i ++,j++)
+                        {
+							int numStart = 59;
+                            cur_label_aug[2*i] = cur_label_copy[2*numStart-2*j];
+							cur_label_aug[2*i+1] = cur_label_copy[2*numStart-2*j+1];
+                        }						
+						for (int i = 60,j = 0; i < 65; i ++,j++)
+                        {
+							int numStart = 64;
+                            cur_label_aug[2*i] = cur_label_copy[2*numStart-2*j];
+							cur_label_aug[2*i+1] = cur_label_copy[2*numStart-2*j+1];
+                        }
+						for (int i = 65,j = 0; i < 68; i ++,j++)
+                        {
+							int numStart = 67;
+                            cur_label_aug[2*i] = cur_label_copy[2*numStart-2*j];
+							cur_label_aug[2*i+1] = cur_label_copy[2*numStart-2*j+1];
+                        }
+						
+					}
                 }
 
                 // left-top coordinates of the crop [0;x_border] x [0;y_border]
@@ -505,6 +598,9 @@ void DataHeatmapLayer<Dtype>::load_batch(Batch<Dtype>* batch) {
 
                 // NOTE: no full copy performed, so the original image buffer is affected by the transformations below
                 cv::Mat img_crop(img, crop);
+				
+				//full copy version
+				//cv::Mat img_crop(img_copy, crop);
 
                 // "crop" annotations
                 for (int i = 0; i < label_num_channels; i += 2)
@@ -601,10 +697,12 @@ void DataHeatmapLayer<Dtype>::load_batch(Batch<Dtype>* batch) {
             // show image
             if (visualise)
             {
+				//LOG(INFO) << flip_joint_labels << " idx_aug: " <<idx_aug << " idx_img:" << idx_img;
                 cv::Mat img_res_vis = img_res / 255;
                 cv::cvtColor(img_res_vis, img_res_vis, CV_RGB2BGR);
                 this->VisualiseAnnotations(img_res_vis, label_num_channels, cur_label_aug, multfact);
                 cv::imshow("resulting image", img_res_vis);
+				
             }
 
             // show image
@@ -642,7 +740,7 @@ void DataHeatmapLayer<Dtype>::load_batch(Batch<Dtype>* batch) {
             const int label_img_size = label_channel_size * label_num_channels / 2;
             cv::Mat dataMatrix = cv::Mat::zeros(label_height, label_width, CV_32FC1);
             float label_resize_fact = (float) label_height / (float) outsize;
-            float sigma = 1.5;
+            float sigma = 6;    //1.5 modify to 3   zhw 160817
 
             for (int idx_ch = 0; idx_ch < label_num_channels / 2; idx_ch++)
             {
@@ -654,9 +752,9 @@ void DataHeatmapLayer<Dtype>::load_batch(Batch<Dtype>* batch) {
                     {
                         int label_idx = idx_img_aug * label_img_size + idx_ch * label_channel_size + i * label_height + j;
                         float gaussian = ( 1 / ( sigma * sqrt(2 * M_PI) ) ) * exp( -0.5 * ( pow(i - y, 2.0) + pow(j - x, 2.0) ) * pow(1 / sigma, 2.0) );
-                        gaussian = 4 * gaussian;
+                        gaussian = 16 * gaussian;       //4 to 8 corresposed to sigma=3
                         top_label[label_idx] = gaussian;
-
+						
                         if (idx_ch == 0)
                             dataMatrix.at<float>((int)j, (int)i) = gaussian;
                     }
@@ -755,6 +853,7 @@ void DataHeatmapLayer<Dtype>::VisualiseAnnotations(cv::Mat img_annotation_vis, i
         int coordInd = int(i / 2);
         centers[coordInd] = cv::Point(img_class[i] * multfact, img_class[i + 1] * multfact);
         cv::circle(img_annotation_vis, centers[coordInd], 1, colors[coordInd], 3);
+		//cv::waitKey(0);
     }
 
     // connecting lines
